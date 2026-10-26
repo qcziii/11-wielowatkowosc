@@ -10,7 +10,7 @@ Poziom: **średni** · Rodzaj: **napisz** · Teoria: [09. Synchronizatory i blok
 
 ## Zadanie
 
-`Konfiguracja` trzyma ustawienia aplikacji w zwykłej `HashMap`. Czyta je każde żądanie HTTP (dużo wątków naraz), a raz na jakiś czas jeden wątek przeładowuje całą konfigurację z pliku. Uzupełnij `pobierz`, `czytaj` i `przeladuj` na `ReentrantReadWriteLock`:
+`Configuration` trzyma ustawienia aplikacji w zwykłej `HashMap`. Czyta je każde żądanie HTTP (dużo wątków naraz), a raz na jakiś czas jeden wątek przeładowuje całą konfigurację z pliku. Uzupełnij `get`, `read` i `reload` na `ReentrantReadWriteLock`:
 
 1. czytelnicy nie czekają na siebie nawzajem,
 2. przeładowanie czeka, aż obecni czytelnicy skończą, i w trakcie przeładowania nikt nie czyta,

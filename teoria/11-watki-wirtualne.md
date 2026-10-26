@@ -15,14 +15,14 @@ Wątek wirtualny (Java 21, JEP 444) to wątek Javy, którym zarządza JVM, a nie
 Skutek: możesz mieć **miliony** wątków wirtualnych, a kod piszesz zwyczajnie, blokująco, „jeden wątek na żądanie”.
 
 ```java
-Thread t = Thread.ofVirtual().name("klient-", 0).start(() -> obsluz());
-Thread.startVirtualThread(() -> obsluz());
+Thread t = Thread.ofVirtual().name("customer-", 0).start(() -> handle());
+Thread.startVirtualThread(() -> handle());
 
 try (ExecutorService ex = Executors.newVirtualThreadPerTaskExecutor()) {
-    for (String url : urle) {
-        ex.submit(() -> pobierz(url));     // nowy wątek wirtualny na KAŻDE zadanie
+    for (String url : urls) {
+        ex.submit(() -> get(url));     // a new virtual thread for EVERY task
     }
-}   // close() czeka na wszystkie
+}   // close() waits for all of them
 
 Thread.currentThread().isVirtual();
 ```
@@ -46,11 +46,11 @@ Wszystko, co znasz z poprzednich rozdziałów, działa tak samo: `synchronized`,
 ```java
 Semaphore limit = new Semaphore(100);
 try (var ex = Executors.newVirtualThreadPerTaskExecutor()) {
-    for (String p : produkty) {
+    for (String p : products) {
         ex.submit(() -> {
             limit.acquire();
             try {
-                return api.cena(p);
+                return api.price(p);
             } finally {
                 limit.release();
             }

@@ -10,11 +10,11 @@ Poziom: **średni** · Rodzaj: **napisz** · Teoria: [05. wait i notifyAll](../.
 
 ## Zadanie
 
-Uzupełnij `BuforOgraniczony<T>`: kolejkę o stałej pojemności, z której naraz korzysta wielu producentów i wielu konsumentów. To dokładnie to, co robi `ArrayBlockingQueue`, ale tu masz to napisać sam, na najniższym poziomie: `synchronized`, `wait()` i `notifyAll()`.
+Uzupełnij `BoundedBuffer<T>`: kolejkę o stałej pojemności, z której naraz korzysta wielu producentów i wielu konsumentów. To dokładnie to, co robi `ArrayBlockingQueue`, ale tu masz to napisać sam, na najniższym poziomie: `synchronized`, `wait()` i `notifyAll()`.
 
-- `wloz(e)`: gdy bufor jest pełny, wątek czeka, aż zwolni się miejsce,
-- `wez()`: gdy bufor jest pusty, wątek czeka, aż pojawi się element,
-- `rozmiar()`: aktualna liczba elementów,
+- `put(e)`: gdy bufor jest pełny, wątek czeka, aż zwolni się miejsce,
+- `take()`: gdy bufor jest pusty, wątek czeka, aż pojawi się element,
+- `size()`: aktualna liczba elementów,
 - oba czekające wywołania reagują na przerwanie (`InterruptedException`),
 - kolejność FIFO.
 

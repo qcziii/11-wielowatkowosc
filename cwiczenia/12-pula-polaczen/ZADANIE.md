@@ -10,7 +10,7 @@ Poziom: **średni** · Rodzaj: **napraw** · Teoria: [09. Synchronizatory i blok
 
 ## Zgłoszenie
 
-`PulaPolaczen` pilnuje, żeby naraz było używane najwyżej N połączeń z bazą (`Semaphore` z N zezwoleniami). Działa, dopóki nie pojawią się błędy SQL. Po kilku nieudanych zapytaniach aplikacja przestaje odpowiadać: wszystkie wątki czekają na połączenie, choć baza jest bezczynna. Zrzut wątków pokazuje dziesiątki wątków w `Semaphore.acquire`.
+`ConnectionPool` pilnuje, żeby naraz było używane najwyżej N połączeń z bazą (`Semaphore` z N zezwoleniami). Działa, dopóki nie pojawią się błędy SQL. Po kilku nieudanych zapytaniach aplikacja przestaje odpowiadać: wszystkie wątki czekają na połączenie, choć baza jest bezczynna. Zrzut wątków pokazuje dziesiątki wątków w `Semaphore.acquire`.
 
 **Oczekiwane:**
 

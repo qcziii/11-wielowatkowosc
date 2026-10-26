@@ -6,21 +6,21 @@
 
 ```java
 class Generator implements Runnable {
-    private boolean dziala = true;
+    private boolean running = true;
 
     public void run() {
-        while (dziala) { /* licz */ }
+        while (running) { /* compute */ }
     }
 
-    public void zatrzymaj() { dziala = false; }   // wołane z innego wątku
+    public void stop() { running = false; }   // called from another thread
 }
 ```
 
-Wywołanie `zatrzymaj()` z innego wątku często **nie zatrzymuje** pętli. To nie jest wyścig w sensie z rozdziału 02 (zapisuje tylko jeden wątek). To problem **widoczności**: nic nie gwarantuje, że wątek generatora kiedykolwiek zobaczy zapis innego wątku.
+Wywołanie `stop()` z innego wątku często **nie zatrzymuje** pętli. To nie jest wyścig w sensie z rozdziału 02 (zapisuje tylko jeden wątek). To problem **widoczności**: nic nie gwarantuje, że wątek generatora kiedykolwiek zobaczy zapis innego wątku.
 
 Dlaczego tak się dzieje:
 
-- kompilator JIT widzi, że w pętli nikt nie zmienia `dziala`, więc może odczytać pole raz i zamienić pętlę na `if (dziala) while (true) {...}`,
+- kompilator JIT widzi, że w pętli nikt nie zmienia `running`, więc może odczytać pole raz i zamienić pętlę na `if (running) while (true) {...}`,
 - procesory mają pamięci podręczne (cache) i bufory zapisu, a wartości mogą siedzieć w rejestrach.
 
 Java nie obiecuje, że zapis w jednym wątku jest widoczny w innym, **chyba że** coś te dwa wątki synchronizuje.
@@ -30,7 +30,7 @@ Dlaczego z debuggerem albo `System.out.println` w pętli „działa”: `println
 ## `volatile`
 
 ```java
-private volatile boolean dziala = true;
+private volatile boolean running = true;
 ```
 
 `volatile` gwarantuje:
@@ -42,14 +42,14 @@ private volatile boolean dziala = true;
 `volatile` **nie** gwarantuje atomowości operacji złożonych:
 
 ```java
-private volatile int licznik;
-licznik++;     // DALEJ wyścig: odczyt i zapis są osobno, każdy z osobna widoczny
+private volatile int counter;
+counter++;     // STILL a race: the read and the write are separate, each visible on its own
 ```
 
 Kiedy `volatile` wystarcza:
 
-- flaga ustawiana przez jeden wątek i czytana przez inne (`dziala`, `zamknieto`),
-- publikowanie referencji do niemutowalnego obiektu (`volatile Konfiguracja aktualna;` podmieniana w całości),
+- flaga ustawiana przez jeden wątek i czytana przez inne (`running`, `closed`),
+- publikowanie referencji do niemutowalnego obiektu (`volatile Configuration current;` podmieniana w całości),
 - gdy tylko jeden wątek pisze, a inni czytają.
 
 Kiedy nie wystarcza: gdy nowa wartość zależy od starej (`++`, `+=`, check-then-act) i pisze więcej niż jeden wątek. Wtedy `synchronized` albo klasy atomowe.
@@ -68,7 +68,7 @@ Model pamięci Javy (JMM) mówi, kiedy zapis w jednym wątku jest **na pewno** w
 | zadanie przekazane do `ExecutorService` | wątek puli widzi stan sprzed `submit`; wołający widzi wynik po `Future.get()` |
 | akcje w `java.util.concurrent` | np. `put` w `BlockingQueue` → `take` tego elementu; `countDown()` → powrót z `await()` |
 
-Reguły są **przechodnie**. Dlatego w ćwiczeniu 05 pole `kroki` nie musi być `volatile`: wątek generatora zapisuje je, kończy się, a test czyta je po `join()`.
+Reguły są **przechodnie**. Dlatego w ćwiczeniu 05 pole `steps` nie musi być `volatile`: wątek generatora zapisuje je, kończy się, a test czyta je po `join()`.
 
 Z tego wynika praktyczna zasada: **każdy dostęp do współdzielonego, zmiennego stanu musi przejść przez jakąś krawędź happens-before.** Zwykle zapewnia ją `synchronized`, `volatile`, klasy atomowe, kolekcje współbieżne albo `join`/`Future.get`.
 
@@ -87,32 +87,32 @@ Pola **`final`** mają osobną gwarancję: jeśli konstruktor nie „wypuścił�
 ## Leniwa inicjalizacja (singleton)
 
 ```java
-// ŹLE: check-then-act i brak widoczności
-private static Usluga instancja;
-static Usluga pobierz() {
-    if (instancja == null) instancja = new Usluga();
-    return instancja;
+// WRONG: check-then-act and no visibility
+private static Service instance;
+static Service get() {
+    if (instance == null) instance = new Service();
+    return instance;
 }
 ```
 
 Poprawne warianty, od najprostszego:
 
 ```java
-// 1. inicjalizacja przy ładowaniu klasy
-private static final Usluga INSTANCJA = new Usluga();
+// 1. initialized when the class is loaded
+private static final Service INSTANCE = new Service();
 
-// 2. holder: klasa wewnętrzna ładowana dopiero przy pierwszym użyciu (JVM gwarantuje bezpieczeństwo)
-private static class Holder { static final Usluga INSTANCJA = new Usluga(); }
-static Usluga pobierz() { return Holder.INSTANCJA; }
+// 2. holder: the nested class is loaded on first use (the JVM guarantees safety)
+private static class Holder { static final Service INSTANCE = new Service(); }
+static Service get() { return Holder.INSTANCE; }
 
-// 3. double-checked locking: TYLKO z volatile
-private static volatile Usluga instancja;
-static Usluga pobierz() {
-    Usluga u = instancja;
+// 3. double-checked locking: ONLY with volatile
+private static volatile Service instance;
+static Service get() {
+    Service u = instance;
     if (u == null) {
-        synchronized (Usluga.class) {
-            u = instancja;
-            if (u == null) instancja = u = new Usluga();
+        synchronized (Service.class) {
+            u = instance;
+            if (u == null) instance = u = new Service();
         }
     }
     return u;
@@ -124,7 +124,7 @@ Bez `volatile` wariant 3 jest błędny: inny wątek może zobaczyć referencję 
 ## Pytania sprawdzające
 
 1. Dlaczego pętla `while (!stop)` może się nie zatrzymać, choć inny wątek ustawił `stop = true`?
-2. Co gwarantuje `volatile`? Dlaczego `volatile int licznik; licznik++` dalej jest błędem?
+2. Co gwarantuje `volatile`? Dlaczego `volatile int counter; counter++` dalej jest błędem?
 3. Wymień cztery sposoby utworzenia relacji happens-before między dwoma wątkami.
 4. Wątek zapisuje wynik do zwykłego pola i się kończy. Główny wątek robi `join()` i czyta pole. Czy to poprawne? Dlaczego?
 5. Dlaczego double-checked locking bez `volatile` jest błędny?

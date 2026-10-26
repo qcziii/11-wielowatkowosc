@@ -10,7 +10,7 @@ Poziom: **średni** · Rodzaj: **napraw** · Teoria: [10. Zakleszczenia](../../t
 
 ## Zgłoszenie
 
-`Bank.przelej` blokuje oba rachunki (`synchronized` na rachunku źródłowym i docelowym), żeby nikt w tym czasie nie zmienił ich sald. Testy jednowątkowe przechodzą. Na produkcji, mniej więcej raz dziennie, system przelewów staje: wątki nie zużywają procesora, nic nie robią, a nowe przelewy też stają. Pomaga tylko restart.
+`Bank.transfer` blokuje oba rachunki (`synchronized` na rachunku źródłowym i docelowym), żeby nikt w tym czasie nie zmienił ich sald. Testy jednowątkowe przechodzą. Na produkcji, mniej więcej raz dziennie, system przelewów staje: wątki nie zużywają procesora, nic nie robią, a nowe przelewy też stają. Pomaga tylko restart.
 
 Zanim cokolwiek zmienisz, **zobacz problem na żywo**: uruchom test w IntelliJ, poczekaj, aż zawiśnie, i zrób zrzut wątków (w IntelliJ ikona aparatu „Get Thread Dump” w oknie Run/Debug, albo `jcmd`/`jstack` z terminala, opis w teorii). Znajdź w zrzucie słowa `Found one Java-level deadlock`.
 

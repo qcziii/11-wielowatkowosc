@@ -14,7 +14,7 @@ Konto nie ma debetu, a mimo to klienci potrafią wypłacić więcej, niż mają.
 
 **Oczekiwane:** saldo nigdy nie spada poniżej zera, a każda udana wypłata zmniejsza saldo dokładnie o swoją kwotę. Nieudana wypłata nie zmienia salda.
 
-**Pytanie dodatkowe:** Każda pojedyncza operacja na `AtomicInteger` jest atomowa. Dlaczego `wyplac` mimo to nie jest? Jak nazywa się ten wzorzec błędu?
+**Pytanie dodatkowe:** Każda pojedyncza operacja na `AtomicInteger` jest atomowa. Dlaczego `withdraw` mimo to nie jest? Jak nazywa się ten wzorzec błędu?
 
 ## Kiedy skończysz
 

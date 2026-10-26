@@ -23,29 +23,29 @@
 „Thread-safe” znaczy: każda **pojedyncza** operacja (`get`, `put`, `remove`) jest atomowa, a struktura mapy nigdy się nie zepsuje. **Nie** znaczy, że ciąg operacji jest atomowy:
 
 ```java
-// ŹLE: read-modify-write, gubi zwiększenia mimo ConcurrentHashMap
-Long ile = mapa.get(slowo);
-mapa.put(slowo, ile == null ? 1 : ile + 1);
+// WRONG: read-modify-write, loses increments despite ConcurrentHashMap
+Long count = map.get(word);
+map.put(word, count == null ? 1 : count + 1);
 
-// ŹLE: check-then-act
-if (!mapa.containsKey(k)) {
-    mapa.put(k, stworz());
+// WRONG: check-then-act
+if (!map.containsKey(k)) {
+    map.put(k, create());
 }
 ```
 
 Do operacji złożonych `ConcurrentHashMap` ma metody, które robią je atomowo dla danego klucza:
 
 ```java
-mapa.merge(slowo, 1L, Long::sum);                     // licznik
-mapa.computeIfAbsent(k, klucz -> new ArrayList<>());  // utwórz, jeśli nie ma (funkcja wołana najwyżej raz)
-mapa.compute(k, (klucz, stara) -> ...);               // dowolna zmiana
-mapa.putIfAbsent(k, v);
-mapa.replace(k, staraWartosc, nowa);                  // CAS na wartości
+map.merge(word, 1L, Long::sum);                     // counter
+map.computeIfAbsent(k, key -> new ArrayList<>());  // create if absent (function called at most once)
+map.compute(k, (key, old) -> ...);               // any change
+map.putIfAbsent(k, v);
+map.replace(k, oldValue, newValue);                  // CAS on the value
 ```
 
 Funkcje przekazane do `compute*`/`merge` muszą być **krótkie** i nie mogą zmieniać tej samej mapy (mapa w tym czasie blokuje fragment tablicy).
 
-Dla liczników przy dużym ruchu: `ConcurrentHashMap<String, LongAdder>` i `mapa.computeIfAbsent(k, x -> new LongAdder()).increment()`.
+Dla liczników przy dużym ruchu: `ConcurrentHashMap<String, LongAdder>` i `map.computeIfAbsent(k, x -> new LongAdder()).increment()`.
 
 Inne fakty:
 
@@ -58,16 +58,16 @@ Inne fakty:
 Opakowanie, w którym każda metoda jest `synchronized`. Dwie pułapki:
 
 ```java
-List<String> lista = Collections.synchronizedList(new ArrayList<>());
+List<String> list = Collections.synchronizedList(new ArrayList<>());
 
-// 1. iteracja musi być ręcznie pod blokadą listy
-synchronized (lista) {
-    for (String s : lista) { ... }
+// 1. iteration must be done manually under the list's lock
+synchronized (list) {
+    for (String s : list) { ... }
 }
 
-// 2. operacje złożone też
-synchronized (lista) {
-    if (!lista.contains(x)) lista.add(x);
+// 2. so must compound operations
+synchronized (list) {
+    if (!list.contains(x)) list.add(x);
 }
 ```
 
@@ -77,25 +77,25 @@ Kolejka, która **czeka**: `put` czeka, gdy (ograniczona) kolejka jest pełna, `
 
 | | Rzuca wyjątek | Zwraca wartość specjalną | Czeka | Czeka z limitem |
 |---|---|---|---|---|
-| włóż | `add(e)` | `offer(e)` → `false` | `put(e)` | `offer(e, czas, jedn.)` |
-| wyjmij | `remove()` | `poll()` → `null` | `take()` | `poll(czas, jedn.)` |
+| włóż | `add(e)` | `offer(e)` → `false` | `put(e)` | `offer(e, time, unit)` |
+| wyjmij | `remove()` | `poll()` → `null` | `take()` | `poll(time, unit)` |
 
 Pułapka: `offer` na pełnej kolejce **po cichu nie wkłada** elementu (zwraca `false`). Jeśli tego nie sprawdzisz, element przepada.
 
 Wzorzec producent-konsument:
 
 ```java
-BlockingQueue<Zadanie> kolejka = new ArrayBlockingQueue<>(100);   // ograniczona: producent nie zaleje pamięci
+BlockingQueue<Task> queue = new ArrayBlockingQueue<>(100);   // bounded: the producer cannot flood memory
 
-// producent
-for (Zadanie z : zrodlo) kolejka.put(z);
-for (int i = 0; i < liczbaKonsumentow; i++) kolejka.put(KONIEC);   // „zatruta pigułka” dla każdego konsumenta
+// producer
+for (Task t : source) queue.put(t);
+for (int i = 0; i < consumerCount; i++) queue.put(POISON_PILL);   // a "poison pill" for each consumer
 
-// konsument
+// consumer
 while (true) {
-    Zadanie z = kolejka.take();
-    if (z == KONIEC) break;
-    obsluz(z);
+    Task t = queue.take();
+    if (t == POISON_PILL) break;
+    handle(t);
 }
 ```
 

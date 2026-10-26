@@ -11,14 +11,14 @@ Poziom: **łatwy** · Rodzaj: **napraw** · Teoria: [01. Wątki: podstawy](../..
 
 ## Zgłoszenie
 
-`UruchamiaczZadan.uruchomRownolegle` miał uruchamiać każde zadanie w osobnym wątku. Wątki są tworzone, mają nawet ładne nazwy `zadanie-1`, `zadanie-2`..., ale trzy zadania po 300 ms trwają razem prawie sekundę, a w logach wszystkie zadania wypisują nazwę wątku `main`.
+`TaskRunner.runInParallel` miał uruchamiać każde zadanie w osobnym wątku. Wątki są tworzone, mają nawet ładne nazwy `task-1`, `task-2`..., ale trzy zadania po 300 ms trwają razem prawie sekundę, a w logach wszystkie zadania wypisują nazwę wątku `main`.
 
 **Oczekiwane:**
 
 - każde zadanie wykonuje się w swoim wątku, wszystkie w tym samym czasie,
 - metoda wraca dopiero wtedy, gdy wszystkie zadania się skończą.
 
-**Pytanie dodatkowe:** Dlaczego `watek.join()` na wątku, którego nikt nie uruchomił, nie zawiesza programu, tylko od razu wraca?
+**Pytanie dodatkowe:** Dlaczego `thread.join()` na wątku, którego nikt nie uruchomił, nie zawiesza programu, tylko od razu wraca?
 
 ## Kiedy skończysz
 

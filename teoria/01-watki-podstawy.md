@@ -21,24 +21,24 @@ Wątki stosujemy z dwóch powodów:
 Wątek to obiekt klasy `Thread`. Kod, który ma się w nim wykonać, przekazujemy jako `Runnable` (interfejs z jedną metodą `void run()`), najczęściej lambdą:
 
 ```java
-Runnable zadanie = () -> System.out.println("Działam w: " + Thread.currentThread().getName());
+Runnable task = () -> System.out.println("Running in: " + Thread.currentThread().getName());
 
-Thread watek = new Thread(zadanie, "moj-watek");
-watek.start();   // uruchamia NOWY wątek, który wykona zadanie.run()
+Thread thread = new Thread(task, "my-thread");
+thread.start();   // starts a NEW thread that will call task.run()
 ```
 
 Inne sposoby, które spotkasz w starszym kodzie:
 
 ```java
-// dziedziczenie po Thread (gorsze: zadanie zlepione z mechanizmem uruchamiania)
-class MojWatek extends Thread {
+// extending Thread (worse: the task is glued to the way it is run)
+class MyThread extends Thread {
     @Override public void run() { ... }
 }
-new MojWatek().start();
+new MyThread().start();
 
-// Java 21: fabryki i wątki wirtualne
-Thread t1 = Thread.ofPlatform().name("worker-1").start(zadanie);
-Thread t2 = Thread.ofVirtual().start(zadanie);   // rozdział 11
+// Java 21: builders and virtual threads
+Thread t1 = Thread.ofPlatform().name("worker-1").start(task);
+Thread t2 = Thread.ofVirtual().start(task);   // chapter 11
 ```
 
 W praktyce rzadko tworzy się wątki ręcznie: używa się puli wątków (`ExecutorService`, rozdział 06). Ale żeby rozumieć pule, trzeba rozumieć zwykły `Thread`.
@@ -46,8 +46,8 @@ W praktyce rzadko tworzy się wątki ręcznie: używa się puli wątków (`Execu
 ### `start()` a `run()`: najczęstszy błąd początkujących
 
 ```java
-watek.run();     // ŹLE: zwykłe wywołanie metody, w BIEŻĄCYM wątku. Żaden nowy wątek nie powstaje.
-watek.start();   // DOBRZE: JVM tworzy nowy wątek i w nim woła run()
+thread.run();     // WRONG: a plain method call on the CURRENT thread. No new thread is created.
+thread.start();   // RIGHT: the JVM creates a new thread and calls run() on it
 ```
 
 `run()` to zwykła metoda. Jeśli wołasz ją sam, wykonuje się po kolei, w wątku, który ją wywołał (np. `main`). Kod się kompiluje, działa, daje dobre wyniki, tylko nic nie dzieje się równolegle. Rozpoznasz to po tym, że `Thread.currentThread().getName()` w zadaniu zwraca `main` (albo nazwę wątku testu), a nie nazwę nowego wątku.
@@ -59,12 +59,12 @@ watek.start();   // DOBRZE: JVM tworzy nowy wątek i w nim woła run()
 `start()` wraca od razu, nie czeka, aż wątek skończy pracę. Jeśli potrzebujesz wyniku pracy wątku, musisz na niego poczekać:
 
 ```java
-long[] wynik = new long[1];
-Thread t = new Thread(() -> wynik[0] = policzCosDlugo());
+long[] result = new long[1];
+Thread t = new Thread(() -> result[0] = computeSomethingLong());
 t.start();
-// tu wątek t może jeszcze liczyć, wynik[0] może wynosić 0
-t.join();        // czekamy, aż t się zakończy
-System.out.println(wynik[0]);   // teraz na pewno widzimy wynik
+// thread t may still be computing here, result[0] may be 0
+t.join();        // wait until t finishes
+System.out.println(result[0]);   // now we are guaranteed to see the result
 ```
 
 Dwie rzeczy, które `join()` daje:
@@ -94,12 +94,12 @@ Stany przydają się przy diagnozie: w zrzucie wątków (rozdział 10) od razu w
 ## Przydatne metody
 
 ```java
-Thread.currentThread()          // obiekt bieżącego wątku
+Thread.currentThread()          // the current thread object
 Thread.currentThread().getName()
-Thread.sleep(100);              // uśpij BIEŻĄCY wątek na 100 ms (rzuca InterruptedException, rozdział 04)
-t.isAlive()                     // czy wątek wystartował i jeszcze się nie skończył
-t.setDaemon(true);              // przed start(): wątek demon
-t.interrupt();                  // poproś wątek o przerwanie (rozdział 04)
+Thread.sleep(100);              // put the CURRENT thread to sleep for 100 ms (throws InterruptedException, chapter 04)
+t.isAlive()                     // has the thread started and not finished yet
+t.setDaemon(true);              // before start(): daemon thread
+t.interrupt();                  // ask the thread to stop (chapter 04)
 ```
 
 `Thread.sleep` to metoda **statyczna**: zawsze usypia bieżący wątek. `t.sleep(100)` się kompiluje, ale usypia ten wątek, który to wywołał, nie `t`.
@@ -118,7 +118,7 @@ Wyjątek rzucony w `run()` **nie leci do wątku, który zawołał `start()`**. K
 Thread t = new Thread(() -> { throw new IllegalStateException("bum"); });
 t.start();
 t.join();
-System.out.println("main działa dalej, o wyjątku wie tylko System.err");
+System.out.println("main keeps running, only System.err knows about the exception");
 ```
 
 Jeśli wynik albo wyjątek ma wrócić do wołającego, potrzebujesz `Future` (rozdział 06) albo `CompletableFuture` (rozdział 07). Można też ustawić `t.setUncaughtExceptionHandler(...)`.
@@ -128,17 +128,17 @@ Jeśli wynik albo wyjątek ma wrócić do wołającego, potrzebujesz `Future` (r
 Klasyczny schemat (ćwiczenie 02): tablica długości `n` dzielona na `k` części.
 
 ```java
-int rozmiar = n / k;
+int size = n / k;
 for (int i = 0; i < k; i++) {
-    int od = i * rozmiar;
-    int doWyl = (i == k - 1) ? n : od + rozmiar;   // ostatnia część bierze resztę z dzielenia!
+    int from = i * size;
+    int toExcl = (i == k - 1) ? n : from + size;   // the last part takes the remainder!
     ...
 }
 ```
 
-Każdy wątek pisze do **własnej** komórki tablicy wyników (`sumy[i]`), więc wątki nie piszą do tej samej zmiennej. Wyniki sumujemy dopiero po `join()` wszystkich wątków.
+Każdy wątek pisze do **własnej** komórki tablicy wyników (`sums[i]`), więc wątki nie piszą do tej samej zmiennej. Wyniki sumujemy dopiero po `join()` wszystkich wątków.
 
-Zmienne z lambdy muszą być *effectively final*. Dlatego w pętli robi się kopię: `final int nr = i;`. Nie da się w lambdzie zrobić `suma += x` na zmiennej lokalnej z zewnątrz, i dobrze, bo to byłby wyścig (rozdział 02).
+Zmienne z lambdy muszą być *effectively final*. Dlatego w pętli robi się kopię: `final int idx = i;`. Nie da się w lambdzie zrobić `sum += x` na zmiennej lokalnej z zewnątrz, i dobrze, bo to byłby wyścig (rozdział 02).
 
 ## Pytania sprawdzające
 

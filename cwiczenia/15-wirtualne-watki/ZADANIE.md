@@ -10,7 +10,7 @@ Poziom: **łatwy** · Rodzaj: **napraw** · Teoria: [11. Wątki wirtualne](../..
 
 ## Zgłoszenie
 
-`PobieraczCen` pobiera ceny produktów z zewnętrznego API. Jedno żądanie to ok. 100 ms czekania na sieć, procesor w tym czasie nic nie robi. Na puli 8 wątków 2000 produktów to 2000 × 100 ms / 8 = 25 sekund. Ktoś zaproponował pulę 2000 wątków, ale na serwerze to 2000 wątków systemowych z własnymi stosami, na każde wywołanie.
+`PriceFetcher` pobiera ceny produktów z zewnętrznego API. Jedno żądanie to ok. 100 ms czekania na sieć, procesor w tym czasie nic nie robi. Na puli 8 wątków 2000 produktów to 2000 × 100 ms / 8 = 25 sekund. Ktoś zaproponował pulę 2000 wątków, ale na serwerze to 2000 wątków systemowych z własnymi stosami, na każde wywołanie.
 
 **Oczekiwane:**
 

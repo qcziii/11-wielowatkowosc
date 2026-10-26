@@ -5,16 +5,16 @@
 ## Zakleszczenie (deadlock)
 
 ```java
-void przelej(Rachunek z, Rachunek na, long kwota) {
-    synchronized (z) {
-        synchronized (na) {
+void transfer(Account from, Account to, long amount) {
+    synchronized (from) {
+        synchronized (to) {
             ...
         }
     }
 }
 ```
 
-Wątek 1: `przelej(A, B)`, wątek 2 w tej samej chwili: `przelej(B, A)`.
+Wątek 1: `transfer(A, B)`, wątek 2 w tej samej chwili: `transfer(B, A)`.
 
 ```
 Wątek 1: bierze A            Wątek 2: bierze B
@@ -40,10 +40,10 @@ Każda metoda zapobiegania łamie jeden z warunków.
 **Stała kolejność blokad** (łamie 4, najczęstsze rozwiązanie): wszyscy biorą blokady w tym samym porządku, np. po numerze rachunku. Cykl nie może powstać.
 
 ```java
-Rachunek pierwszy = z.numer() < na.numer() ? z : na;
-Rachunek drugi    = pierwszy == z ? na : z;
-synchronized (pierwszy) {
-    synchronized (drugi) { ... }
+Account first  = from.number() < to.number() ? from : to;
+Account second = first == from ? to : from;
+synchronized (first) {
+    synchronized (second) { ... }
 }
 ```
 
@@ -79,10 +79,10 @@ Przy zakleszczeniu na `synchronized` albo `ReentrantLock` JVM sam to wykrywa i n
 Found one Java-level deadlock:
 =============================
 "przelewy-1":
-  waiting to lock monitor 0x... (object 0x..., a pl.kurs.watki.Rachunek),
+  waiting to lock monitor 0x... (object 0x..., a pl.kurs.threads.Account),
   which is held by "przelewy-0"
 "przelewy-0":
-  waiting to lock monitor 0x... (object 0x..., a pl.kurs.watki.Rachunek),
+  waiting to lock monitor 0x... (object 0x..., a pl.kurs.threads.Account),
   which is held by "przelewy-1"
 ```
 

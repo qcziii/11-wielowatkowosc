@@ -3,12 +3,12 @@
 ## Podstawy
 
 ```java
-Thread t = new Thread(() -> praca(), "nazwa");
-t.start();                    // NIE t.run()
-t.join();                     // czekaj na koniec + widoczność zapisów t
-t.join(1000); t.isAlive();    // z limitem
-t.interrupt();                // poproś o przerwanie
-Thread.sleep(100);            // usypia BIEŻĄCY wątek
+Thread t = new Thread(() -> work(), "name");
+t.start();                    // NOT t.run()
+t.join();                     // wait for t to finish + see its writes
+t.join(1000); t.isAlive();    // with a timeout
+t.interrupt();                // ask it to stop (interrupt)
+Thread.sleep(100);            // puts the CURRENT thread to sleep
 Thread.currentThread().getName()
 ```
 
@@ -37,10 +37,10 @@ Thread.currentThread().getName()
 ## Wzorce z finally
 
 ```java
-lock.lock();             // przed try
+lock.lock();             // before try
 try { ... } finally { lock.unlock(); }
 
-semafor.acquire();       // przed try
+semafor.acquire();       // before try
 try { ... } finally { semafor.release(); }
 ```
 
@@ -48,9 +48,9 @@ try { ... } finally { semafor.release(); }
 
 ```java
 synchronized (this) {
-    while (!warunek) wait();       // while, nie if
+    while (!condition) wait();       // while, not if
     ...
-    notifyAll();                   // nie notify()
+    notifyAll();                   // not notify()
 }
 ```
 
@@ -58,8 +58,8 @@ synchronized (this) {
 
 ```java
 catch (InterruptedException e) {
-    Thread.currentThread().interrupt();   // przywróć flagę
-    return;                               // i zakończ (albo: throws InterruptedException)
+    Thread.currentThread().interrupt();   // restore the flag
+    return;                               // and finish (or: throws InterruptedException)
 }
 ```
 
@@ -68,11 +68,11 @@ Nigdy nie połykaj (pusty catch, sam log).
 ## ExecutorService
 
 ```java
-try (ExecutorService pula = Executors.newFixedThreadPool(4)) {       // Java 19+: close() czeka
-    Future<Integer> f = pula.submit(() -> policz());
-    f.get();                         // ExecutionException → e.getCause() to oryginał
+try (ExecutorService pool = Executors.newFixedThreadPool(4)) {       // Java 19+: close() waits
+    Future<Integer> f = pool.submit(() -> count());
+    f.get();                         // ExecutionException → e.getCause() is the original
 }
-// starsze: shutdown(); if (!awaitTermination(...)) shutdownNow();
+// older style: shutdown(); if (!awaitTermination(...)) shutdownNow();
 ```
 
 `submit` chowa wyjątek w `Future`: bez `get()` przepada.
@@ -80,13 +80,13 @@ try (ExecutorService pula = Executors.newFixedThreadPool(4)) {       // Java 19+
 ## CompletableFuture
 
 ```java
-var a = supplyAsync(() -> uslugaA(), executor);    // zawsze z executorem dla I/O
-var b = supplyAsync(() -> uslugaB(), executor);
-a.thenCombine(b, Wynik::new)                       // dwa równoległe
- .thenApply(w -> ...)                              // przekształć
- .thenCompose(w -> kolejnyAsync(w))                // kolejny krok async
- .completeOnTimeout(domyslna, 500, MILLISECONDS)
- .exceptionally(e -> zastepcza);                   // e często to CompletionException
+var a = supplyAsync(() -> serviceA(), executor);    // always with an executor for I/O
+var b = supplyAsync(() -> serviceB(), executor);
+a.thenCombine(b, Result::new)                       // two in parallel
+ .thenApply(w -> ...)                              // transform
+ .thenCompose(w -> nextAsync(w))                // next async step
+ .completeOnTimeout(defaultValue, 500, MILLISECONDS)
+ .exceptionally(e -> fallback);                   // e is often a CompletionException
 ```
 
 `get()` → `ExecutionException`, `join()` → `CompletionException`.

@@ -9,9 +9,9 @@ Ze zwykłym `Future` jedyne, co możesz zrobić z wynikiem, to **poczekać** na 
 ## Uruchamianie
 
 ```java
-CompletableFuture<Klient> klient = CompletableFuture.supplyAsync(() -> klienci.pobierz(id), executor);
-CompletableFuture<Void> zapis = CompletableFuture.runAsync(() -> log.zapisz(...), executor);
-CompletableFuture<String> gotowy = CompletableFuture.completedFuture("od razu");
+CompletableFuture<Customer> customer = CompletableFuture.supplyAsync(() -> customers.get(id), executor);
+CompletableFuture<Void> writeLock = CompletableFuture.runAsync(() -> log.save(...), executor);
+CompletableFuture<String> gotowy = CompletableFuture.completedFuture("right away");
 ```
 
 **Zawsze podawaj executor**, gdy zadanie czeka na sieć, bazę czy dysk. Bez niego zadania idą na `ForkJoinPool.commonPool()`: wspólną pulę całej JVM, z liczbą wątków równą liczbie rdzeni minus jeden. Kilka wolnych wywołań HTTP potrafi ją zapchać, a z nią wszystkie `parallelStream()` w aplikacji.
@@ -20,10 +20,10 @@ CompletableFuture<String> gotowy = CompletableFuture.completedFuture("od razu");
 
 | Metoda | Kiedy | Przykład |
 |---|---|---|
-| `thenApply(f)` | przekształć wynik (funkcja zwraca zwykłą wartość) | `klient.thenApply(Klient::nazwa)` |
+| `thenApply(f)` | przekształć wynik (funkcja zwraca zwykłą wartość) | `customer.thenApply(Customer::name)` |
 | `thenAccept(c)` | zrób coś z wynikiem, nic nie zwracaj | `f.thenAccept(System.out::println)` |
-| `thenCompose(f)` | następny krok też jest asynchroniczny (funkcja zwraca `CompletableFuture`) | `klient.thenCompose(k -> zamowienia(k.id()))` |
-| `thenCombine(inny, f)` | połącz dwa **niezależne**, równoległe wyniki | `cena.thenCombine(kurs, (c, k) -> c * k)` |
+| `thenCompose(f)` | następny krok też jest asynchroniczny (funkcja zwraca `CompletableFuture`) | `customer.thenCompose(k -> orders(k.id()))` |
+| `thenCombine(inny, f)` | połącz dwa **niezależne**, równoległe wyniki | `price.thenCombine(rate, (p, r) -> p * r)` |
 | `allOf(f1, f2, ...)` | poczekaj na wszystkie (wynik `Void`) | potem `f1.join()` w środku `thenApply` już nie blokuje |
 | `anyOf(...)` | pierwszy gotowy | |
 
@@ -32,14 +32,14 @@ CompletableFuture<String> gotowy = CompletableFuture.completedFuture("od razu");
 Równoległość bierze się z tego, że **uruchamiasz wszystko od razu**, a dopiero potem łączysz:
 
 ```java
-// równolegle: oba wywołania startują w tej samej chwili
-var a = CompletableFuture.supplyAsync(() -> uslugaA(), executor);
-var b = CompletableFuture.supplyAsync(() -> uslugaB(), executor);
-CompletableFuture<Wynik> wynik = a.thenCombine(b, Wynik::new);
+// in parallel: both calls start at the same moment
+var a = CompletableFuture.supplyAsync(() -> serviceA(), executor);
+var b = CompletableFuture.supplyAsync(() -> serviceB(), executor);
+CompletableFuture<Result> result = a.thenCombine(b, Result::new);
 
-// po kolei: B startuje dopiero, gdy A się skończy
-CompletableFuture<Wynik> wynik = CompletableFuture.supplyAsync(() -> uslugaA(), executor)
-        .thenCompose(x -> CompletableFuture.supplyAsync(() -> uslugaB(x), executor).thenApply(y -> new Wynik(x, y)));
+// sequential: B starts only after A finishes
+CompletableFuture<Result> result = CompletableFuture.supplyAsync(() -> serviceA(), executor)
+        .thenCompose(x -> CompletableFuture.supplyAsync(() -> serviceB(x), executor).thenApply(y -> new Result(x, y)));
 ```
 
 Drugi wariant jest dobry tylko wtedy, gdy B naprawdę potrzebuje wyniku A.
@@ -52,14 +52,14 @@ Wyjątek w dowolnym kroku kończy future **wyjątkowo**, a kolejne `thenApply`/`
 
 | Metoda | Co robi |
 |---|---|
-| `exceptionally(e -> wartośćZastępcza)` | tylko przy błędzie: zamień błąd na wartość |
-| `handle((wynik, e) -> ...)` | zawsze; dostaje wynik albo błąd (jedno z nich jest `null`) |
-| `whenComplete((wynik, e) -> ...)` | zawsze, do efektów ubocznych (log); nie zmienia wyniku |
-| `completeOnTimeout(wartość, czas, jedn.)` (Java 9+) | jeśli w czasie nie ma wyniku, użyj wartości |
-| `orTimeout(czas, jedn.)` (Java 9+) | jeśli w czasie nie ma wyniku, zakończ `TimeoutException` |
+| `exceptionally(e -> fallbackValue)` | tylko przy błędzie: zamień błąd na wartość |
+| `handle((result, e) -> ...)` | zawsze; dostaje wynik albo błąd (jedno z nich jest `null`) |
+| `whenComplete((result, e) -> ...)` | zawsze, do efektów ubocznych (log); nie zmienia wyniku |
+| `completeOnTimeout(value, time, unit)` (Java 9+) | jeśli w czasie nie ma wyniku, użyj wartości |
+| `orTimeout(time, unit)` (Java 9+) | jeśli w czasie nie ma wyniku, zakończ `TimeoutException` |
 
 ```java
-CompletableFuture<BigDecimal> rabat = CompletableFuture.supplyAsync(() -> rabaty.rabat(id), executor)
+CompletableFuture<BigDecimal> discount = CompletableFuture.supplyAsync(() -> discounts.discount(id), executor)
         .completeOnTimeout(BigDecimal.ZERO, 500, TimeUnit.MILLISECONDS)
         .exceptionally(e -> BigDecimal.ZERO);
 ```

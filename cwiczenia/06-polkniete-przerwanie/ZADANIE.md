@@ -10,7 +10,7 @@ Poziom: **średni** · Rodzaj: **napraw** · Teoria: [04. Przerywanie wątków](
 
 ## Zgłoszenie
 
-`MonitorDysku` co 100 ms odczytuje czujnik. Przy zamykaniu aplikacji wołamy `stop()`, który przerywa wątek monitora (`interrupt()`) i czeka na jego koniec. W logu pojawia się `Monitor: przerwano oczekiwanie`, ale nigdy `Monitor: koniec pracy`, `stop()` zwraca `false`, a aplikacja nie chce się zamknąć. Pętla przecież sprawdza `isInterrupted()`...
+`DiskMonitor` co 100 ms odczytuje czujnik. Przy zamykaniu aplikacji wołamy `stop()`, który przerywa wątek monitora (`interrupt()`) i czeka na jego koniec. W logu pojawia się `Monitor: sleep interrupted`, ale nigdy `Monitor: finished`, `stop()` zwraca `false`, a aplikacja nie chce się zamknąć. Pętla przecież sprawdza `isInterrupted()`...
 
 **Oczekiwane:**
 

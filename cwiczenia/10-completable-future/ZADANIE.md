@@ -10,17 +10,17 @@ Poziom: **średni/trudny** · Rodzaj: **napisz** · Teoria: [07. CompletableFutu
 
 ## Zadanie
 
-Ekran klienta pokazuje podsumowanie otwartych zamówień. Dane są w trzech usługach (`Uslugi`): dane klienta, zamówienia i rabat. Każda odpowiada po ok. 200 ms. Wołane po kolei dają 600 ms, a chcemy ok. 200 ms.
+Ekran klienta pokazuje podsumowanie otwartych zamówień. Dane są w trzech usługach (`Services`): dane klienta, zamówienia i rabat. Każda odpowiada po ok. 200 ms. Wołane po kolei dają 600 ms, a chcemy ok. 200 ms.
 
-Napisz `SerwisPodsumowan.podsumowanie(klientId)` na `CompletableFuture`:
+Napisz `SummaryService.summary(customerId)` na `CompletableFuture`:
 
-1. metoda nie blokuje, zwraca `CompletableFuture<Podsumowanie>` od razu,
+1. metoda nie blokuje, zwraca `CompletableFuture<Summary>` od razu,
 2. trzy usługi wołane równolegle, na executorze podanym w konstruktorze,
-3. wynik składasz przez `Podsumowanie.z(klient, zamowienia, rabat)` (obliczenia są gotowe),
-4. gdy usługa rabatów rzuci wyjątek **albo** nie odpowie w `LIMIT_RABATU` (500 ms), rabat to `BigDecimal.ZERO`,
-5. gdy klienta nie ma, future kończy się wyjątkowo, a `get()` rzuca `ExecutionException` z przyczyną `KlientNieZnalezionyException`.
+3. wynik składasz przez `Summary.of(customer, orders, discount)` (obliczenia są gotowe),
+4. gdy usługa rabatów rzuci wyjątek **albo** nie odpowie w `DISCOUNT_TIMEOUT` (500 ms), rabat to `BigDecimal.ZERO`,
+5. gdy klienta nie ma, future kończy się wyjątkowo, a `get()` rzuca `ExecutionException` z przyczyną `CustomerNotFoundException`.
 
-Nie używaj `get()` ani `join()` wewnątrz `podsumowanie`.
+Nie używaj `get()` ani `join()` wewnątrz `summary`.
 
 **Pytania dodatkowe:**
 

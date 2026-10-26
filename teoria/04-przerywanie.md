@@ -9,9 +9,9 @@ W Javie nie ma bezpiecznego sposobu na „zabicie” wątku z zewnątrz (`Thread
 Do tej prośby służy mechanizm przerwań:
 
 ```java
-t.interrupt();                          // ustaw wątkowi t flagę „przerwany”
-Thread.currentThread().isInterrupted()  // sprawdź flagę bieżącego wątku (nie zmienia jej)
-Thread.interrupted()                    // statyczna: sprawdź I WYCZYŚĆ flagę bieżącego wątku
+t.interrupt();                          // set the "interrupted" flag on thread t
+Thread.currentThread().isInterrupted()  // check the current thread's flag (does not change it)
+Thread.interrupted()                    // static: check AND CLEAR the current thread's flag
 ```
 
 `interrupt()` nie przerywa niczego siłą. Ustawia flagę i budzi wątek, jeśli ten czeka w metodzie blokującej.
@@ -32,13 +32,13 @@ Najważniejszy wiersz to drugi: **`InterruptedException` kasuje flagę.** Kto z�
 Błąd, który w kodzie spotkasz najczęściej:
 
 ```java
-// ŹLE: połknięte przerwanie
+// WRONG: swallowed interruption
 while (!Thread.currentThread().isInterrupted()) {
-    zrobCos();
+    doSomething();
     try {
         Thread.sleep(100);
     } catch (InterruptedException e) {
-        log.warn("przerwano");   // flaga już jest false, pętla kręci się dalej
+        log.warn("interrupted");   // the flag is already false, the loop keeps spinning
     }
 }
 ```
@@ -46,18 +46,18 @@ while (!Thread.currentThread().isInterrupted()) {
 Dwie poprawne reakcje:
 
 ```java
-// 1. Przekaż dalej: zadeklaruj throws InterruptedException i nie łap.
-//    Najlepsze w metodach „bibliotecznych”, które nie decydują o losie wątku.
-void czekajNaDane() throws InterruptedException {
+// 1. Propagate: declare throws InterruptedException and do not catch it.
+//    Best for "library" methods that do not decide the thread's fate.
+void awaitData() throws InterruptedException {
     Thread.sleep(100);
 }
 
-// 2. Jeśli nie możesz rzucić dalej (np. w Runnable.run): przywróć flagę i zakończ pracę.
+// 2. If you cannot rethrow (e.g. in Runnable.run): restore the flag and stop working.
 try {
     Thread.sleep(100);
 } catch (InterruptedException e) {
-    Thread.currentThread().interrupt();   // przywróć flagę, żeby wyższy poziom ją zobaczył
-    return;                               // albo break; pętla i tak zobaczy flagę
+    Thread.currentThread().interrupt();   // restore the flag so that the caller sees it
+    return;                               // or break; the loop will see the flag anyway
 }
 ```
 
@@ -67,7 +67,7 @@ Też źle: opakowanie w `RuntimeException` bez przywrócenia flagi. Jeśli musis
 
 ## Własna flaga czy przerwanie?
 
-Flaga `volatile boolean dziala` (rozdział 03) też działa, ale nie obudzi wątku, który śpi w `sleep(10_000)` albo czeka w `take()`. Przerwanie budzi go od razu. Dlatego:
+Flaga `volatile boolean running` (rozdział 03) też działa, ale nie obudzi wątku, który śpi w `sleep(10_000)` albo czeka w `take()`. Przerwanie budzi go od razu. Dlatego:
 
 - pętla, która tylko liczy: flaga `volatile` albo `isInterrupted()`, obie w porządku,
 - pętla, która czeka (sleep, kolejka, `Future.get`): przerwanie.

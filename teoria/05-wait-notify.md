@@ -7,8 +7,8 @@
 Konsument chce wyjąć element z bufora, ale bufor jest pusty. Co ma zrobić?
 
 ```java
-// ŹLE: aktywne czekanie (busy waiting) zjada cały rdzeń procesora
-while (bufor.isEmpty()) { }
+// WRONG: busy waiting burns a whole CPU core
+while (buffer.isEmpty()) { }
 ```
 
 Potrzebujemy sposobu, żeby wątek **zasnął**, dopóki warunek nie stanie się prawdziwy, i żeby inny wątek mógł go obudzić. W Javie na najniższym poziomie służą do tego metody klasy `Object`: `wait()`, `notify()` i `notifyAll()`.
@@ -17,17 +17,17 @@ Potrzebujemy sposobu, żeby wątek **zasnął**, dopóki warunek nie stanie się
 
 ```java
 synchronized (monitor) {
-    while (!warunek) {
-        monitor.wait();          // 1. zwalnia blokadę monitora, 2. zasypia, 3. po obudzeniu znowu bierze blokadę
+    while (!condition) {
+        monitor.wait();          // 1. releases the monitor, 2. sleeps, 3. re-acquires the monitor after waking up
     }
-    // tu warunek jest prawdziwy, a my trzymamy blokadę
-    zrobCos();
+    // here the condition holds and we hold the lock
+    doSomething();
 }
 
-// w innym wątku
+// in another thread
 synchronized (monitor) {
-    zmienStan();                 // warunek mógł się zmienić
-    monitor.notifyAll();         // obudź wszystkich czekających na tym monitorze
+    changeState();                 // the condition may have changed
+    monitor.notifyAll();         // wake up everyone waiting on this monitor
 }
 ```
 
@@ -64,17 +64,17 @@ P1 widzi pełny bufor, zasypia. Nikt nie budzi konsumentów. Wszyscy śpią: zaw
 ## Przykład: bramka startowa
 
 ```java
-class Bramka {
-    private boolean otwarta;
+class Gate {
+    private boolean open;
 
-    synchronized void czekajNaOtwarcie() throws InterruptedException {
-        while (!otwarta) {
+    synchronized void awaitOpen() throws InterruptedException {
+        while (!open) {
             wait();
         }
     }
 
-    synchronized void otworz() {
-        otwarta = true;
+    synchronized void openGate() {
+        open = true;
         notifyAll();
     }
 }
@@ -90,7 +90,7 @@ class Bramka {
 | bramka, „poczekaj aż N rzeczy się skończy” | `CountDownLatch` (rozdział 09) |
 | limit N naraz | `Semaphore` |
 | czekanie na wynik innego wątku | `Future`, `CompletableFuture` |
-| kilka warunków na jednej blokadzie | `ReentrantLock` + osobne `Condition` (`niePelny`, `niePusty`) |
+| kilka warunków na jednej blokadzie | `ReentrantLock` + osobne `Condition` (`notFull`, `notEmpty`) |
 
 Mimo to `wait`/`notifyAll` warto raz napisać samemu: wtedy rozumiesz, co robią te klasy w środku i dlaczego mają takie zasady.
 

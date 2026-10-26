@@ -10,7 +10,7 @@ Poziom: **łatwy** · Rodzaj: **napraw** · Teoria: [08. Kolekcje współbieżne
 
 ## Zgłoszenie
 
-`LicznikSlow` dzieli linie tekstu między wątki. Na początku była tam `HashMap` i program potrafił się wysypać albo zawiesić, więc ktoś zamienił ją na `ConcurrentHashMap`. Od tamtej pory nic się nie wysypuje, ale wyniki są za małe: słowo, które występuje 300 000 razy, ma licznik 280 000 z kawałkiem, przy każdym uruchomieniu inny.
+`WordCounter` dzieli linie tekstu między wątki. Na początku była tam `HashMap` i program potrafił się wysypać albo zawiesić, więc ktoś zamienił ją na `ConcurrentHashMap`. Od tamtej pory nic się nie wysypuje, ale wyniki są za małe: słowo, które występuje 300 000 razy, ma licznik 280 000 z kawałkiem, przy każdym uruchomieniu inny.
 
 **Oczekiwane:** liczby wystąpień są dokładne przy dowolnej liczbie wątków. Rozwiązanie bez `synchronized` i bez własnych blokad.
 

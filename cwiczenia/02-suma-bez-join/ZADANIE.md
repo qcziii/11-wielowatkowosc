@@ -10,7 +10,7 @@ Poziom: **łatwy** (2 błędy) · Rodzaj: **napraw** · Teoria: [01. Wątki: pod
 
 ## Zgłoszenie
 
-`SumaRownolegla.suma` dzieli tablicę na tyle części, ile jest wątków, i każdą część sumuje w osobnym wątku. Dla tablicy `1, 2, ..., 8 000 000` raz wychodzi 0, raz jakaś połowa wyniku, a raz dobrze. Kolega dopisał w pętli `System.out.println` i „naprawiło się”, ale tylko u niego.
+`ParallelSum.sum` dzieli tablicę na tyle części, ile jest wątków, i każdą część sumuje w osobnym wątku. Dla tablicy `1, 2, ..., 8 000 000` raz wychodzi 0, raz jakaś połowa wyniku, a raz dobrze. Kolega dopisał w pętli `System.out.println` i „naprawiło się”, ale tylko u niego.
 
 Po pierwszej poprawce zostaje drugi, mniej widoczny błąd: dla tablicy o długości 1 000 003 i 4 wątków wynik jest za mały, i to zawsze o tyle samo.
 

@@ -9,11 +9,11 @@ Tworzenie wątku platformowego jest drogie (wątek systemu operacyjnego, stos rz
 ## Tworzenie puli
 
 ```java
-ExecutorService pula = Executors.newFixedThreadPool(4);            // stałe 4 wątki, nieograniczona kolejka
-ExecutorService pula = Executors.newSingleThreadExecutor();         // 1 wątek: zadania po kolei
-ExecutorService pula = Executors.newCachedThreadPool();             // tworzy wątki w miarę potrzeby (uwaga: bez limitu)
-ScheduledExecutorService s = Executors.newScheduledThreadPool(2);   // zadania z opóźnieniem / cykliczne
-ExecutorService pula = Executors.newVirtualThreadPerTaskExecutor(); // Java 21: wątek wirtualny na zadanie (rozdział 11)
+ExecutorService pool = Executors.newFixedThreadPool(4);            // fixed 4 threads, unbounded queue
+ExecutorService pool = Executors.newSingleThreadExecutor();         // 1 thread: tasks one after another
+ExecutorService pool = Executors.newCachedThreadPool();             // creates threads as needed (careful: no limit)
+ScheduledExecutorService s = Executors.newScheduledThreadPool(2);   // delayed / periodic tasks
+ExecutorService pool = Executors.newVirtualThreadPerTaskExecutor(); // Java 21: one virtual thread per task (chapter 11)
 ```
 
 Ile wątków? Dla obliczeń (CPU) mniej więcej liczba rdzeni (`Runtime.getRuntime().availableProcessors()`). Dla zadań, które głównie czekają (sieć, baza), więcej, albo od razu wątki wirtualne.
@@ -21,17 +21,17 @@ Ile wątków? Dla obliczeń (CPU) mniej więcej liczba rdzeni (`Runtime.getRunti
 ## Runnable, Callable, Future
 
 ```java
-// Runnable: nic nie zwraca, nie może rzucić wyjątku kontrolowanego
-pula.execute(() -> System.out.println("hej"));
+// Runnable: returns nothing, cannot throw a checked exception
+pool.execute(() -> System.out.println("hi"));
 
-// Callable<T>: zwraca wynik i może rzucać wyjątki
-Callable<Integer> zadanie = () -> policz();
-Future<Integer> przyszly = pula.submit(zadanie);
+// Callable<T>: returns a result and may throw exceptions
+Callable<Integer> task = () -> count();
+Future<Integer> future = pool.submit(task);
 
-// ... w międzyczasie robimy coś innego ...
+// ... do something else in the meantime ...
 
-Integer wynik = przyszly.get();               // czeka na wynik (blokuje)
-Integer wynik = przyszly.get(2, TimeUnit.SECONDS);   // czeka max 2 s, potem TimeoutException
+Integer result = future.get();               // waits for the result (blocks)
+Integer result = future.get(2, TimeUnit.SECONDS);   // waits up to 2 s, then TimeoutException
 ```
 
 `Future` to „pokwitowanie” za zadanie:
@@ -39,17 +39,17 @@ Integer wynik = przyszly.get(2, TimeUnit.SECONDS);   // czeka max 2 s, potem Tim
 | Metoda | Co robi |
 |---|---|
 | `get()` | czeka na koniec i zwraca wynik; jeśli zadanie rzuciło wyjątek: `ExecutionException` z tym wyjątkiem w `getCause()` |
-| `get(czas, jednostka)` | jak wyżej, z limitem; po limicie `TimeoutException` (zadanie dalej działa!) |
+| `get(time, unit)` | jak wyżej, z limitem; po limicie `TimeoutException` (zadanie dalej działa!) |
 | `isDone()` | czy zadanie się skończyło (normalnie, wyjątkiem albo anulowane) |
 | `cancel(true)` | anuluje; `true` = przerwij wątek, jeśli zadanie już działa (rozdział 04) |
 
-Wyniki wielu zadań w kolejności zgłoszenia: trzymaj listę `Future` i wołaj `get()` po kolei. Albo `invokeAll(listaCallable)`, które zwraca listę `Future` w kolejności zadań i czeka na wszystkie.
+Wyniki wielu zadań w kolejności zgłoszenia: trzymaj listę `Future` i wołaj `get()` po kolei. Albo `invokeAll(callables)`, które zwraca listę `Future` w kolejności zadań i czeka na wszystkie.
 
 ## Gdzie znikają wyjątki
 
 ```java
-pula.submit(() -> { throw new IllegalStateException("bum"); });   // cisza
-pula.execute(() -> { throw new IllegalStateException("bum"); });  // stos na System.err, wątek puli umiera i jest zastępowany
+pool.submit(() -> { throw new IllegalStateException("bum"); });   // silence
+pool.execute(() -> { throw new IllegalStateException("bum"); });  // stack trace on System.err, the pool thread dies and is replaced
 ```
 
 `submit` łapie każdy wyjątek z zadania i chowa go w zwróconym `Future`. **Jeśli nikt nie zawoła `get()`, wyjątek przepada bez śladu.** To częste źródło błędów typu „import mówi, że wszystko OK, a połowy danych nie ma”.
@@ -58,9 +58,9 @@ Zasada: jeśli używasz `submit`, zawsze zrób coś z `Future`. `get()` rzuca `E
 
 ```java
 try {
-    przyszly.get();
+    future.get();
 } catch (ExecutionException e) {
-    Throwable prawdziwyBlad = e.getCause();
+    Throwable rootCause = e.getCause();
     ...
 }
 ```
@@ -73,19 +73,19 @@ Wątki puli nie są demonami. **Niezamknięta pula trzyma JVM przy życiu** i zj
 |---|---|
 | `shutdown()` | nie przyjmuje nowych zadań; zgłoszone (także czekające w kolejce) wykonają się do końca. **Nie czeka**, wraca od razu |
 | `shutdownNow()` | nie przyjmuje nowych; czekające w kolejce wyrzuca (zwraca ich listę), działające **przerywa** (`interrupt`) |
-| `awaitTermination(czas, jedn.)` | czeka, aż wszystkie zadania się skończą, maksymalnie podany czas. Zwraca `true`, jeśli się skończyły, `false`, jeśli minął czas |
+| `awaitTermination(time, unit)` | czeka, aż wszystkie zadania się skończą, maksymalnie podany czas. Zwraca `true`, jeśli się skończyły, `false`, jeśli minął czas |
 | `close()` (Java 19+) | `shutdown()` i czekanie bez limitu na koniec wszystkich zadań. `ExecutorService` jest `AutoCloseable` |
 
 Klasyczny wzorzec (Java 8-17):
 
 ```java
-ExecutorService pula = Executors.newFixedThreadPool(4);
+ExecutorService pool = Executors.newFixedThreadPool(4);
 try {
     ... submit ...
 } finally {
-    pula.shutdown();
-    if (!pula.awaitTermination(30, TimeUnit.SECONDS)) {
-        pula.shutdownNow();
+    pool.shutdown();
+    if (!pool.awaitTermination(30, TimeUnit.SECONDS)) {
+        pool.shutdownNow();
     }
 }
 ```
@@ -93,9 +93,9 @@ try {
 Od Javy 19 najprościej:
 
 ```java
-try (ExecutorService pula = Executors.newFixedThreadPool(4)) {
+try (ExecutorService pool = Executors.newFixedThreadPool(4)) {
     ... submit ...
-}   // close(): shutdown + czekanie na wszystkie zadania
+}   // close(): shutdown + wait for all tasks
 ```
 
 Pułapka: wynik `awaitTermination` **trzeba sprawdzić**. Jeśli zignorujesz `false`, kod idzie dalej, choć zadania dalej działają (ćwiczenie 09).

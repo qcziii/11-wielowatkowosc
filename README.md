@@ -52,7 +52,7 @@ Przeczytaj `ZADANIE.md` w katalogu ćwiczenia, zobacz problem, znajdź przyczyn�
 | 02 | [Suma liczona w kilku wątkach wychodzi za każdym razem inna](cwiczenia/02-suma-bez-join/ZADANIE.md) | napraw | łatwy (2 błędy) |
 | 03 | [Licznik odwiedzin gubi wejścia, choć pole jest volatile](cwiczenia/03-licznik-odwiedzin/ZADANIE.md) | napraw | łatwy |
 | 04 | [Konto schodzi poniżej zera, choć saldo jest AtomicInteger](cwiczenia/04-konto-na-minusie/ZADANIE.md) | napraw | łatwy/średni |
-| 05 | [Wątek nie zatrzymuje się po zatrzymaj()](cwiczenia/05-watek-nie-chce-stanac/ZADANIE.md) | napraw | łatwy |
+| 05 | [Wątek nie zatrzymuje się po stop()](cwiczenia/05-watek-nie-chce-stanac/ZADANIE.md) | napraw | łatwy |
 | 06 | [Monitora nie da się wyłączyć](cwiczenia/06-polkniete-przerwanie/ZADANIE.md) | napraw | średni |
 | 07 | [Bufor ograniczony na wait() i notifyAll()](cwiczenia/07-bufor-wait-notify/ZADANIE.md) | napisz | średni |
 | 08 | [Przetwarzanie listy na puli wątków](cwiczenia/08-executor-service/ZADANIE.md) | napisz | średni |
