@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Rodzic i agregat: `mvn compile` w tym katalogu kompiluje wszystkie ćwiczenia naraz (i otwiera je razem w IntelliJ). -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>pl.kurs</groupId>
+    <artifactId>wielowatkowosc</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <modules>
+        <module>cwiczenia/01-start-zamiast-run</module>
+        <module>cwiczenia/02-suma-bez-join</module>
+        <module>cwiczenia/03-licznik-odwiedzin</module>
+        <module>cwiczenia/04-konto-na-minusie</module>
+        <module>cwiczenia/05-watek-nie-chce-stanac</module>
+        <module>cwiczenia/06-polkniete-przerwanie</module>
+        <module>cwiczenia/07-bufor-wait-notify</module>
+        <module>cwiczenia/08-executor-service</module>
+        <module>cwiczenia/09-zgubione-wyjatki</module>
+        <module>cwiczenia/10-completable-future</module>
+        <module>cwiczenia/11-licznik-slow</module>
+        <module>cwiczenia/12-pula-polaczen</module>
+        <module>cwiczenia/13-konfiguracja-rwlock</module>
+        <module>cwiczenia/14-zakleszczenie-przelewy</module>
+        <module>cwiczenia/15-wirtualne-watki</module>
+        <module>cwiczenia/16-simpledateformat</module>
+        <module>cwiczenia/17-projekt-zamowienia</module>
+    </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>6.0.1</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.14.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.5.4</version>
+                    <configuration>
+                        <!-- Wątki, które zawisły w zepsutym kodzie, nie blokują końca testów. -->
+                        <forkedProcessExitTimeoutInSeconds>5</forkedProcessExitTimeoutInSeconds>
+                        <trimStackTrace>true</trimStackTrace>
+                        <!-- W raportach (i w check.sh) nazwy testów z @DisplayName. -->
+                        <statelessTestsetReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
+                            <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
+                        </statelessTestsetReporter>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>3.6.2</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>
